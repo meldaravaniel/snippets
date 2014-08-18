@@ -1,3 +1,7 @@
+/* Depending on what you are separating with this, you will have to tweak the widths, margins, and paddings.
+This is easily done in-browser if you open up the developer tools and modify the CSS and then look at what
+happens.  When doing this, don't forget to copy your changes over to your actual CSS file!*/
+
 .listSpan {
 	display:inline-block;
 	width:45px;
