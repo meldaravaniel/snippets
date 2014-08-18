@@ -1,0 +1,14 @@
+.listSpan {
+	display:inline-block;
+	width:45px;
+}
+
+.listSpan:not(:last-of-type) {
+	margin-right:5px
+}
+                
+.listSpan:not(:last-of-type):after { /*puts a gray bullet after each branch except the last one*/
+	padding-left:5px;
+	content:'\2022';
+	color:#666;
+}
