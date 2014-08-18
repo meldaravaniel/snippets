@@ -1,0 +1,39 @@
+<!-- this uses angularJS and bootstrap 
+  I was originally attempting to get this to work with bootstrap's dropdown, but didn't
+  want the words to be floating.  There's probably a better way to do this, but it worked
+  for what I wanted to do and looks nice, so I don't mind too much.
+-->
+
+<ul class="list-group">
+	<li class="list-group-item" ng-repeat="thingList in thingLists | orderBy:thing" ng-init="thingList.show = false"> 
+	<div class="container">
+		<div class="row" ng-click="thingList.show = !thingList.show">
+			<div class="col-md-10"><h4>{{thingList.name}}</h4></div>
+			<div class="col-md-1">
+				<span class="glyphicon glyphicon-chevron-down" ng-show="!thingList.show"></span>
+				<span class="glyphicon glyphicon-chevron-up" ng-show="thingList.show"></span>
+			</div>
+		</div>
+	</div>
+	<table class="table table-bordered table-condensed table-striped" ng-show="thingList.show">
+		<thead>
+			<tr>
+				<th class="col-md-3 col-sm-2 col-xs-1">Thing Heading 1</th>
+				<th class="col-md-3 col-sm-2 col-xs-1">Thing Heading 2</th>
+				<th class="col-md-3 col-sm-2 col-xs-1">Thing Heading 3</th>
+				<th class="col-md-3 col-sm-2 col-xs-1">Thing Heading 4</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr ng-repeat="thing in thingList">
+				<td>
+					<a ng-href="...">{{thing.info1}}</a>
+				</td>
+				<td><div ng-repeat="foo in thing.foos | foos">{{foo}}</div></td>
+				<td>{{thing.otherInfo}}</td>
+				<td>{{thing.evenMoreInfo}}</td>
+			</tr>
+		</tbody>
+	</table>
+	</li>
+</ul>
