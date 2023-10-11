@@ -69,8 +69,8 @@ Follow the steps [here](https://www.atlassian.com/git/tutorials/migrating-prepar
 
 1) Run the `git clone`
    * this may take forever.  One of my repos took 5.5 hrs.  It was big, but it's definitely not the biggest thing I've ever seen...your clone may vary. ;D
-   * use `--prefix=''` or the git svn fetch on top later won't be able to be applied with a sync rebase. :(
-   * If you were living in a massive, shared SVN repo, it would behoove you to research at what revision number your repo starts, or the git clone will start at revision 0 and search until it finds the first record of your repo.  Some of mine didn't start until the 350K mark and it takes a LONG time for it to get to there.  A bit of [mise en place](https://en.wikipedia.org/wiki/Mise_en_place) will save you a ton of time.
+   * use `--prefix=''` or the `git svn fetch` on `top` later won't be able to be applied with a `sync rebase`. :(
+   * If you were living in a massive, shared SVN repo, it would behoove you to research at what revision number your repo starts, or the `git clone` will start at revision 0 and search until it finds the first record of your repo.  Some of mine didn't start until the 350K mark and it takes a LONG time for it to get to there.  A bit of [mise en place](https://en.wikipedia.org/wiki/Mise_en_place) will save you a ton of time.
      * Add `-r###:HEAD` to the clone command (where '###' is a revision number).  You don't have to be exact, either.  I just round down to the nearest nice-looking number.
      * An example command looks like: `git svn clone --stdlayout --prefix='' --r 35000:HEAD --authors-file=authors.txt https://svn.atlassian.com/Confluence ConfluenceAsGit`
 
@@ -82,7 +82,7 @@ Clean up repo using BFG. This is optional, but recommended, especially if you ha
 * Follow [this guide](https://rtyley.github.io/bfg-repo-cleaner/)
 * Can delete those giant files you deleted back up at the top, and can also make it run `--strip-biggest-blobs` or `--strip-blogs-bigger-than` to clean up even more.
 
-After doing this it will break the link between git and git svn [see here](https://help.github.com/articles/removing-sensitive-data-from-a-repository/), you have to glue it back together:
+After doing this it will break the link between git and git svn ([see here](https://help.github.com/articles/removing-sensitive-data-from-a-repository/)).  You have to glue it back together:
 
 1) `git fsck --full`
 1) `git prune`
@@ -95,7 +95,7 @@ After doing this it will break the link between git and git svn [see here](https
 
 ### Cleaning your Repo
 
-![a gif of DW (Dora Winefred) from the kid show "Arthur" sitting at her desk. There's a book and a stuffed rabbit on it.  She pushes both off, onto the floor and the caption reads, "And...clean!"  I feel attacked. ;)](https://media.giphy.com/media/9D6KXW8kgJDxabuQrt/giphy.gif)
+![a gif of DW (Dora Winefred) from the kid show "Arthur" sitting at her desk. There's a book, crayon, marble, and a stuffed rabbit on it.  She pushes both off, onto the floor and the caption reads, "And...clean!"  I feel attacked. ;)](https://media.giphy.com/media/9D6KXW8kgJDxabuQrt/giphy.gif)
 
 Resume with the atlassian steps at "Clean the new Git Repository"
 
@@ -104,9 +104,11 @@ Resume with the atlassian steps at "Clean the new Git Repository"
 
 ### Make a Git-based Repo
 
-![a gif of a bearded masq person wearing a black beanie and caution orange jacket, carrying a large roll of...roofing paper? Caption: "Keep pushing, baby. Keep pushing."](https://media.giphy.com/media/4Jxt2yVZGJuLYjfuxA/giphy.gif)
-
 I'm going to assume you know how to do this, so make a gitlab/hub project within your group with the name you used when cloning the svn repo. **Do not create it with a readme or git ignore or anything.**  Deal with those later.
+
+### Push It.
+
+![a gif of a bearded masq person wearing a black beanie and caution orange jacket, carrying a large roll of...roofing paper? Caption: "Keep pushing, baby. Keep pushing."](https://media.giphy.com/media/4Jxt2yVZGJuLYjfuxA/giphy.gif)
 
 1) Resume with the atlassian steps at "Add an origin remote" 
 1) Convert any builds you have from SVN to Git.  You'll need the url of your new gitlab/hub repository, and what branch you want your main builds pulling from. (now is a good time to switch branches called `master` to `main`...)
