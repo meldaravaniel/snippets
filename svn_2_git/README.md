@@ -36,11 +36,10 @@ Thanks, Obama.
 
 ### Hurry up and wait
 
-If your repo is really big, you need to:
-1) make sure your computer will be connected to the network the whole time (if you're trying to do this on a company VPN that will log you off after a certain time period...don't.)
-   * make sure your computer won't encounter a windows update that will force shut down
-   * consider running it over night OR over the weekend
-   * OR use a VM within the network, it can also be kind of computer resource intensive (if this, and you have to do something like ssh in, you might also want to [use screen](https://www.howtogeek.com/662422/how-to-use-linuxs-screen-command/) so that the process isn't killed if your connection gets cut.
+If your repo is really big, you need to make sure your computer will be connected to the network the whole time (if you're trying to do this on a company VPN that will log you off after a certain time period...don't.)
+* make sure your computer won't encounter a windows update that will force shut down
+* consider running it over night OR over the weekend
+* OR use a VM within the network, it can also be kind of computer resource intensive (if this, and you have to do something like ssh in, you might also want to [use screen](https://www.howtogeek.com/662422/how-to-use-linuxs-screen-command/) so that the process isn't killed if your connection gets cut.
 
 ### Keeping both repos sync'd
 
