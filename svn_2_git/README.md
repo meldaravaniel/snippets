@@ -26,18 +26,25 @@
 
 ## Notes before you start:
 
+### Forget about branches
+
 This doesn't work super well for branches.  It seems to bring over tags just fine, but not all branches make it through.  I have chosen to not care about that, I recommend you do so as well, because trying to make EVERYTHING work perfectly is probably too much work to bother.  The SVN repo will be around for at least a little while longer so if you NEED a branch, it'll be there.  Chances are if SVN goes away, no one's going to remember wtf is in those branches anyways.  Be like Elsa.  Let it go.
 
 ![a gif of former president Obama saying, "Why don't we move on."](https://media.giphy.com/media/xUySTxQp21GMZhX916/giphy.gif)
 
 Thanks, Obama.
 
+### Hurry up and wait
+
 If your repo is really big, you need to:
 1) make sure your computer will be connected to the network the whole time (if you're trying to do this on a company VPN that will log you off after a certain time period...don't.)
    * make sure your computer won't encounter a windows update that will force shut down
    * consider running it over night OR over the weekend
    * OR use a VM within the network, it can also be kind of computer resource intensive (if this, and you have to do something like ssh in, you might also want to [use screen](https://www.howtogeek.com/662422/how-to-use-linuxs-screen-command/) so that the process isn't killed if your connection gets cut.
-1) Although this process **CAN** be used to keep around both the Svn _AND_ Git repos at the same time, I don't recommend this.  It's frustrating to set up, and I guarantee someone will forget to sync and you'll miss stuff.  I strongly recommend you coordinate with your team and choose a time (I do it over weekends) that will be when no one/few people are committing to the repo, clone it into git, and then HARD SWITCH everyone over all in one swell foop.
+
+### Keeping both repos sync'd
+
+Although this process **CAN** be used to keep around both the Svn _AND_ Git repos at the same time, I don't recommend this.  It's frustrating to set up, and I guarantee someone will forget to sync and you'll miss stuff.  I strongly recommend you coordinate with your team and choose a time (I do it over weekends) that will be when no one/few people are committing to the repo, clone it into git, and then HARD SWITCH everyone over all in one swell foop.
    * If you rely on a separate build team, keep in mind you are also going to have to get them to change any builds you rely on over, BUT you can have people start using the repo before this is complete.  You just won't be able to get any of their code through any pipelines until the builds are fixed.
 
 ## Actual Conversion Process
