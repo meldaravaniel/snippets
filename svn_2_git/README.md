@@ -113,7 +113,7 @@ I'm going to assume you know how to do this, so make a gitlab/hub project within
 1) Resume with the atlassian steps at "Add an origin remote" 
 1) Convert any builds you have from SVN to Git.  You'll need the url of your new gitlab/hub repository, and what branch you want your main builds pulling from. (now is a good time to switch branches called `master` to `main`...)
 1) Maven/Java-specific: Switch over your pom
-   * if you're using maven, the parent pom will need to be changed from `<artifactId>base-pom-pipeline-svn</artifactId>` to `<artifactId>base-pom-pipeline-git</artifactId>`
+   * if you're using maven, the parent pom may need to be changed from `<artifactId>base-pom-pipeline-svn</artifactId>` to `<artifactId>base-pom-pipeline-git</artifactId>`
    * you will also need to change the `<scm>` section from `scm:svn:formerSvnUrl` to `scm:git:newGitlabUrl`
    * I recommend you do a full text search for "svn" to make sure you've found everything
    * check that all in!
