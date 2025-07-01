@@ -45,7 +45,7 @@ if not address :contains "To" ["passmail.net", "passmail.com", "passfwd.com", "p
 ## ▌                           ##
 #################################
 # Highly me-opinionated sorting mechanism.  Works for me, for now.  YMMV.  Steal what you want.
-# Most of the below IFs stop after putting email in a folder.  Order if's by precedent if some things might match multiple filters (rare, but happens)
+# Most of the below IFs return (not stop; in case other sieves) after putting email in a folder.  Order if's by precedent if some things might match multiple filters (rare, but happens)
 # TODO: convert to using contact groups so we can stop appending email aliases/sender addresses to these filters
 
 ############
