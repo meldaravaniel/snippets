@@ -89,12 +89,6 @@ if not allof(
 #  ▄▌▙▌█▌▌▌▌  ▝   ▌▙▌▌▌▙▌▌ ▙▖
 #    ▌             ▄▌        
 
-# IGNORED
-# Use for emails you never want to see or have labelled.
-#
-# Rules:
-# ANY match in here MUST call 'stop'.
-
 # IGNORED - spam; this is Proton's default spam sieve filter.
 if allof (
   environment :matches "vnd.proton.spam-threshold" "*",
@@ -104,13 +98,9 @@ if allof (
 }
 
 # IGNORED - sent items
-# Add all your pre-migration inbox addresses to 'Old Addresses' contact group,
-# but not the new Simplelogin (Proton Pass Alias) forwarding addresses added to those mailboxes.
-# remove 'My Addresses' match for any testing, or you'll get no matches!
 if allof(
   anyof(
-    header :list "from" ":addrbook:personal?label=My Addresses",
-    header :list "from" ":addrbook:personal?label=Old Addresses"
+    header :list "from" [":addrbook:personal?label=My Addresses", ":addrbook:personal?label=Old Addresses"]
   ),
   not header :comparator "i;unicode-casemap" :regex [
       "from",
@@ -132,12 +122,12 @@ if allof(
 #     
 
 # Screened Out - Screened Out contacts
-# Emails I receive but can't opt out of
 if anyof(
 header :list [
   "from",
   "to",
-    "X-Original-To"] ":addrbook:personal?label=Screened Out"
+    "X-Original-To"] ":addrbook:personal?label=Screened Out",
+header :comparator "i;unicode-casemap" :is "to" "[EMAIL_TO_SCREEN_TO]"
 ) {
   expire "day" "${screened_out_expiry_days}";
   addflag "\\Seen";
@@ -147,17 +137,12 @@ header :list [
 }
 
 # Screened Out - Political Campaign lists
-# Going forward, make sure to donate/subscribe ONLY using an alias you can turn off/delete,
-# because campaigns sell their email lists to each other and you can NEVER actually unsubscribe
-# from them.  But for existing email addresses you can't delete...
-# This uses the "list-unsubscribe" header because the "from" email address often changes and can
-# be hard to chase (basically whack-a-mole)
 if header :comparator "i;unicode-casemap" :contains "list-unsubscribe" [
   "ngpvan", # used by Democratic Party; fun fact!  it's now owned by private equity firm, "Apax Partners". Surprise, surprise... :/
   "actionkit" # a subsidiary of ngpvan
   ] 
 {
-	expire "day" "${screened_out_expiry_days}";
+  expire "day" "${screened_out_expiry_days}";
   addflag "\\Seen";
   fileinto "expiring";
   fileinto "Trash";
@@ -165,7 +150,6 @@ if header :comparator "i;unicode-casemap" :contains "list-unsubscribe" [
 }
 
 # Screened Out - Craigslist
-# Needs specific rules since it already has its own email aliasing system
 if header :comparator "i;unicode-casemap" :matches [
   "from",
   "X-Simplelogin-Original-From"
@@ -189,13 +173,8 @@ if header :comparator "i;unicode-casemap" :matches [
 }
 
 # Screened Out - calendar items
-# Generally Screened Out and trying to migrate away from email-based reminders,
-# but want to flag up those that come through, before "reminder"s
-# hit Alerts.
 
 # CALENDAR - Google calendar auto-emails
-# Prompt to remove existing email-based notifications
-# Auto-remove acceptance emails.
 if anyof(
   header :comparator "i;unicode-casemap" :matches [
     "from",
@@ -210,8 +189,8 @@ if anyof(
     ".*reminder.*event.*"
 ]) {
   expire "day" "${screened_out_expiry_days}";
-  fileinto "expiring";
   fileinto "calendar";
+  fileinto "expiring";
   if header :comparator "i;unicode-casemap" :matches ["subject"] [
     "*accepted:*"
   ] {
@@ -226,28 +205,6 @@ if anyof(
 #  █▌▙▌▙▌  ▐▖█▌▙▌▙▖▐▖▄▌
 #                      
 
-# LABEL DECORATION
-# Decorates with additional labels based on subject and contact group,
-# without blocking. Use for cumulative addition of context.
-#
-# Rules:
-# - Only "subject" and "from" fields are inspected here to determine labelling.
-# - ANY match in here MUST NOT call `stop`.
-#
-# Things like utilities/services (gas, cell, internet etc.)
-# should be mostly manageable through contact groups instead.
-# 
-# Dual anyof(:regex) used in here and Paper Trail are usually in the format:
-# - first match list: noun fragments;
-# - second match list: verb fragments.
-# This keeps implementation generic and prevents
-# individual regexes from getting too messy.
-
-# LABEL DECORATION - needs an alias
-if not address :contains "To" ["passmail.net", "passmail.com", "passfwd.com", "passinbox.com"] {
-	fileinto "needs-alias";
-}
-
 # LABEL DECORATION - taxes
 if allof(
   header :comparator "i;unicode-casemap" :regex [
@@ -255,7 +212,8 @@ if allof(
     "X-Simplelogin-Original-From",
     "subject"
   ] [
-    ".*(^|[^a-zA-Z0-9])tax(ed|able|ation)?([^a-zA-Z0-9]|$).*"
+    ".*(^|[^a-zA-Z0-9])tax(ed|able|ation)?([^a-zA-Z0-9]|$).*",
+    ".*IRS.*" # this is catching stuff with "irs" in it that isn't "internal revenue service"... duh. :P
   ],
   not header :comparator "i;unicode-casemap" :matches ["subject"] [
     "*sales*"
@@ -263,116 +221,15 @@ if allof(
   fileinto "taxes";
 }
 
-# LABEL DECORATION - donations
-if header :comparator "i;unicode-casemap" :regex [
-    "from",
-    "X-Simplelogin-Original-From",
-    "subject"
-  ] [
-    ".*(^|[^a-zA-Z0-9])donat(e|ion)?([^a-zA-Z0-9]|$).*"
-  ] {
-  fileinto "donations";
-}
-
-# LABEL DECORATION - school stuff
-if anyof (
-	header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Learning"
-) {
-    fileinto "learning";
-}
-
-# LABEL DECORATION - Politics
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Politics"
-     {
-  if header :comparator "i;unicode-casemap" :regex [
-    "subject"
-  ] ".*arn.*points" {
-	# Should toss out YouGov "earn 344345345 points" emails
-    fileinto "Trash";
-    stop;
-  } 
-  if anyof(
-      header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Local"
-) {
-	fileinto "local";
-  } else {
-    fileinto "national";
-  }
-}
-
-# LABEL DECORATION - Advocacy
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Advocacy" {
-    fileinto "advocacy";
-}
-
-# LABEL DECORATION - Volunteering
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Volunteer" {
-    fileinto "volunteer";
-}
-
-# LABEL DECORATION - subscriptions
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Subscriptions"
-{
-  fileinto "shopping";
-  fileinto "subscriptions";
-}
-
-# LABEL DECORATION - medical
-if anyof (
-	header :comparator "i;unicode-casemap" :regex [
-    "from",
-    "X-Simplelogin-Original-From",
-    "subject"
-    ] [
-      ".*my ?health.*",
-      ".*health ?care.*",
-      ".*medic(ine|al).*",
-	  ".*phys(io|ical )therapy.*",
-	  ".*psych.*",
-    ".*vaccin.*" 
-]
-    ) {
-    fileinto "medical";
-  }
-
-# LABEL DECORATION - housing
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Housing" {
-    fileinto "housing";
-}
-
-# LABEL DECORATION - patreon
+# LABEL DECORATION - that one movie theatre (ie. a place I want labeled SPECIFICALLY because I'm too lazy to use the search bar
 if header :comparator "i;unicode-casemap" :regex [
     "from",
     "X-Simplelogin-Original-From",
     "subject"
     ] [
-      ".*patreon.*"
+      ".*movieTheater.*"
   ]  {
-    fileinto "patreon";
-}
-
-# LABEL DECORATION - Google Alerts 
-if anyof (
-    address :all :comparator "i;unicode-casemap" :contains "From" ["googlealerts-noreply@google.com"]
-) {
-    fileinto "galerts";
-}
-
-# LABEL DECORATION - Shops
-if anyof (
-    header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Shops"
-) {
-    fileinto "shopping";
-}
-
-# LABEL DECORATION - crafts 
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Crafts" {
-    fileinto "crafts";
-}
-
-# LABEL DECORATION - music
-if header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label=Music" {
-    fileinto "music";
+    fileinto "movieTheater";
 }
 
 # LABEL DECORATION - conversations
@@ -383,14 +240,14 @@ header :comparator "i;unicode-casemap" :regex "subject" [
   ".*fwd: .*",
   ".*re: .*"
   # </LABEL DECORATION - conversations>
-], header :list "from" ":addrbook:personal?label=Friends",
-    header :list "from" ":addrbook:personal?label=Family",
-    header :contains "In-Reply-To" "@my-domain.com")
+], header :list "from" [":addrbook:personal?label=Friends", ":addrbook:personal?label=Family", ":addrbook:personal?label=ETC"],
+    header :contains "In-Reply-To" "@my-domain.com",
+    header :is "List-Id" "[list-id]")
  {
   fileinto "conversations";
 }
 
-# LABEL DECORATION - reservations
+# LABEL DECORATION - reservations (I condensed this because too many labels
 if anyof(
   header :comparator "i;unicode-casemap" :matches "subject" [
     "*booking*",
@@ -482,17 +339,7 @@ if header :comparator "i;unicode-casemap" :matches [
 #  █▌▐▖▙▖▌ ▐▖▄▌
 #              
 
-# ALERTS
-# Most stay in inbox, although may expire.  Some go to folders to avoid impulse purchases
-# Don't resurface anything else to inbox besides alerts past migration date
-#
-# Rules:
-# - ANY match in here MUST call 'stop'.
-# - Matches in here with received date beyond migration date MUST be sent to inbox.
-
 # ALERTS - Potentially serious security alerts
-# Surface regardless of age, to make sure to delete if no longer relevant.
-
 if allof(
   not header :comparator "i;unicode-casemap" :matches "subject" [
     "*benefits*",
@@ -509,7 +356,7 @@ if allof(
     "*security*"
   ]
 ) {
-  fileinto "alerts";
+  fileinto "Alerts";
   fileinto "security";
   if string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}" {
     fileinto "inbox";
@@ -518,7 +365,6 @@ if allof(
 }
 
 # ALERTS - failed email deliveries
-
 if allof(
   header :comparator "i;unicode-casemap" :matches [
     "from", 
@@ -533,15 +379,32 @@ if allof(
 ) {
   expire "day" "${non_critical_alerts_expiry_days}";
   fileinto "expiring";
-  fileinto "alerts";
+  fileinto "Alerts";
   if string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}" {
     fileinto "inbox";
   }
   stop;
 }
 
-# ALERTS - discount codes (long expiration)
+# ALERTS - transit
+if header :list "from" ":addrbook:personal?label=Transit" {
+  expire "day" "${non_critical_alerts_expiry_days}";
+  fileinto "expiring";
+  addflag "\\Seen";
+  fileinto "Alerts/Transit";
+  stop;
+}
+# LABEL DECORATION - Google Alerts 
+if address :all :comparator "i;unicode-casemap" :contains "From" ["googlealerts-noreply@google.com"]
+{
+    expire "day" "${non_critical_alerts_expiry_days}";
+  fileinto "expiring";
+  addflag "\\Seen";
+  fileinto "Alerts";
+  stop;
+}
 
+# ALERTS - discount codes (long expiration)
 if allof(
   header :comparator "i;unicode-casemap" :regex "subject" [
     ".*(^|[^a-zA-Z0-9])[0-9]{1,3}%([^a-zA-Z0-9]|$).*",
@@ -552,11 +415,9 @@ if allof(
   ],
   not header :comparator "i;unicode-casemap" :regex "subject" [
     ".*(^|[^a-zA-Z0-9])download([^a-zA-Z0-9]|$).*"
-  ], 
-# Exclude politics group because there's a lot of subjects including "Bill"
-not header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] [":addrbook:personal?label=Politics"] ) {
+  ], not header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] [":addrbook:personal?label.ends-with=Politics"] ) {
     fileinto "shopping";
-    fileinto "alerts";
+    fileinto "Alerts";
     expire "day" "${paper_trail_expiry_relative_days}";
     fileinto "expiring"; 
     if string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}" {
@@ -567,11 +428,6 @@ not header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] [":addrbook:person
 
 
 # ALERTS - exclusions
-# All subject to date check to avoid dredging up old irrelevant items
-# if re-running on whole mailbox, and Conversations contact group check
-# to avoid alerting on manually started conversation threads
-# that still contain an 'alerting' subject.
-
 if allof(
   not header :list [
   "from",
@@ -601,7 +457,6 @@ if allof(
 
 
   # ALERTS - reviews, basket prompts
-  # Although these are generally wanted, we surface them as alerts so we can unsubscribe and delete.
   if allof(
     not header :comparator "i;unicode-casemap" :regex "Subject" [
       ".*(^|[^a-zA-Z0-9])activity([^a-zA-Z0-9]|$).*",
@@ -619,7 +474,7 @@ if allof(
       ".*(^|[^a-zA-Z0-9])waiting for you([^a-zA-Z0-9]|$).*"
     ]
   ) {
-    fileinto "alerts";
+    fileinto "Alerts";
     fileinto "needs admin";
     if string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}" {
       fileinto "inbox";
@@ -699,9 +554,6 @@ if allof(
   }
 
   # ALERTS - requiring action
-  # These are most likely appearing while you're actively working;
-  # Expire in case they weren't deleted at the time.
-
   if anyof(
     header :comparator "i;unicode-casemap" :regex "subject" 
     [
@@ -755,7 +607,7 @@ if allof(
       expire "day" "${non_critical_alerts_expiry_days}";
       fileinto "expiring";
     }
-    fileinto "alerts";
+    fileinto "Alerts";
     if string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}" {
       fileinto "inbox";
     }
@@ -768,22 +620,6 @@ if allof(
 #  ▙▌█▌▙▌▙▖▌   ▐▖▌ █▌▌▐▖
 #  ▌   ▌                
 
-# Things we need to have around for a while,
-# but don't need our attention by surfacing to inbox.
-# Nothing should end up here unless it is of limited value long-term:
-# e.g., we are happy with it expiring, because everything that goes here will.
-#
-# Rules
-# ANY match in here MUST:
-# IF the contact is an existing contact
-# - move to `Paper Trail` folder
-# - mark as seen
-# ELSE fall through to Screener.
-#
-# This allows all Paper Trail-like metadata to be applied,
-# and after first contact review, the mail can be manually sent to that folder
-# without needing to manipulate it further to match items in it.
-
 if not anyof(
   header :comparator "i;unicode-casemap" :regex "subject" [
     # <copy LABEL DECORATION - conversations>
@@ -795,7 +631,7 @@ if not anyof(
   header :list [
     "from",
     "to",
-    "X-Original-To"] [":addrbook:personal?label=[GROUP_TO_IGNORE]", ":addrbook:personal?label=[OTHER_GROUP_TO_IGNORE]"],
+    "X-Original-To"] [":addrbook:personal?label=Family", ":addrbook:personal?label=Friends", ":addrbook:personal?label.ends-with=Politics"],
   header :comparator "i;unicode-casemap" :regex "subject" [
     # <copy LABEL DECORATION - licence key checks>
     ".*(^|[^a-zA-Z0-9])download([^a-zA-Z0-9]|$).*",
@@ -804,7 +640,7 @@ if not anyof(
     ".*(^|[^a-zA-Z0-9])product ?key([^a-zA-Z0-9]|$).*",
     # </copy LABEL DECORATION - licence key checks>
     ".*(^|[^a-zA-Z0-9])tax(able|ed|ation)?([^a-zA-Z0-9]|$).*",
-	".*[WORDS_TO_IGNORE].*"
+	".*ulwark.*"
   ]) {
 
   # PAPER TRAIL - auto archive by 
@@ -865,7 +701,7 @@ if not anyof(
   } elsif anyof(
 
     # PAPER TRAIL - tracking
-
+    header :comparator "i;unicode-casemap" :is "from" "USPSInformeddelivery@email.informeddelivery.usps.com",
     header :comparator "i;unicode-casemap" :regex "subject" [
       ".*(^|[^a-zA-Z0-9])arrived:([^a-zA-Z0-9]|$).*",
       ".*(^|[^a-zA-Z0-9])delivered:([^a-zA-Z0-9]|$).*",
@@ -1110,28 +946,82 @@ if not anyof(
 # ▙▌▙▌▐▖  ▌▌▌  ▐ ▙▌▐▖▙▌▙▖▌ ▄▌ 
 # ▌                           
 #
+# I kind of hate labels, so instead, put things that are non-newsletters into folders before we get to there.  I don't wanna see these in my inbox.
 
-##########
-## Work ##
-##########
+# FOLDERS - Scans; catches all the emails with attachments from scanning stuff at my library
+if header :comparator "i;unicode-casemap" :is "from" "my-library@library.org" {
+  fileinto "Scans";
+  stop;
+}
+# FOLDERS - donations
+if header :comparator "i;unicode-casemap" :regex [
+    "from",
+    "X-Simplelogin-Original-From",
+    "subject"
+  ] [
+    ".*(^|[^a-zA-Z0-9])donat(e|ion)?([^a-zA-Z0-9]|$).*"
+  ] {
+  fileinto "Money/Donations";
+  stop;
+}
+# FOLDERS - Health
+ # todo: this is catching newsletters...exclude that at the top of this section.
 if anyof (
-    address :all :comparator "i;unicode-casemap" :contains "From" ["linkedin", "[OTHER_SITES]"]) {
+	header :comparator "i;unicode-casemap" :regex [
+    "from",
+    "X-Simplelogin-Original-From",
+    "subject"
+    ] [
+      ".*my ?health.*",
+      ".*health ?care.*",
+      ".*medic(ine|al).*",
+	  ".*phys(io|ical )therapy.*",
+	  ".*psych.*",
+    ".*vaccin.*",
+    ".*aetna.*"  
+]) {
+  fileinto "Personal/Health";
+  stop;
+}
+# FOLDERS - school stuff
+if allof(
+	# filters here
+)) {
+  fileinto "School";
+  stop;
+}
+# FOLDERS - Volunteering
+if anyof (
+	# filters here
+) {
+    fileinto "Personal/Volunteering";
+}
+
+# FOLDERS - Shops
+if header :comparator "i;unicode-casemap" :contains "Message-Id" ["shopify"]
+{
+  # some shops don't have an email address, but we can catch them with this header instead...
+  # todo: expire these.
+  fileinto "Newsletters/Shops";
+}
+
+# FOLDERS - Work
+if anyof (
+    address :all :comparator "i;unicode-casemap" :contains "From" ["linkedin"]) {
   fileinto "Work";
   stop;
 }
-##########
-## Code ##
-##########
+
+# FOLDERS - Code stuff from code places
 if anyof (
     address :all :comparator "i;unicode-casemap" :contains "From" ["github", "hackerrank"]) {
   fileinto "Work/Code";
 	stop;
 }
-##################
-## Job Listings ##
-##################
+
+# FOLDERS - job listing emails
 if anyof (
-    header :comparator "i;unicode-casemap" :contains "From" ["[JOB_BOARD_EMAIL_1]", "[JOB_BOARD_EMAIL_2]"]
+    header :comparator "i;unicode-casemap" :contains "From" ["job-listings@stuff.com"]
 ) {
   fileinto "Work/Jobs";
 	stop;
@@ -1142,44 +1032,79 @@ if anyof (
 #  ▜▘▛▌█▌  ▜▘█▌█▌▛▌
 #  ▐▖▌▌▙▖  ▐ ▙▖▙▖▙▌
 #                  
-
-# Only add to the feed those senders we've
-# added to the Newsletters contact group.
-#
-# Of those matched, only expire those senders not also
-# put into any other contact group (e.g., "Learning").
+# I modified my groups so that anything that goes in here starts with "Newsletters"; there are too many newsletters to just pile them in one folder, 
+# so I have them subsorted after hitting the first filter check.
 
 # THE FEED - contact groups indicator
-if anyof(
-header :list [
-  "from",
-  "to",
-  "X-Original-To"
-    ] ":addrbook:personal?label=Newsletters",
-header :list [
-  "from",
-  "to",
-  "X-Original-To"
-    ] ":addrbook:personal?label=News"
-    ) {
-  fileinto "The Feed";
-  fileinto "newsletters";
-  # if not anyof(
-    # to populate without using generate script,
-    # add your own contact groups in the format:
-    # header :list "from" ":addrbook:personal?label=Accommodation",
-    # do not include Newsletters here.
-  #   {{contact groups.txt list expansion excluding Newsletters}}
-  # ) {
-    if header :comparator "i;unicode-casemap" :matches "from" "*hello@deals.going.com*" {
-      # Going.com deals no good after a week
-      expire "day" "${non_critical_alerts_expiry_days}";
-    } else {
-      expire "day" "${newsletter_expiry_relative_days}";
+if header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.starts-with=Newsletters"
+{
+	# THE FEED - politics
+  if header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Politics" {
+	if header :comparator "i;unicode-casemap" :regex "subject" ".*arn.*points" {
+	  # Should toss out YouGov "earn 344345345 points" emails
+      fileinto "Trash";
+      stop;
+    } elsif anyof(
+		header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label.ends-with=Local",
+		header :comparator "i;unicode-casemap" :contains ["Subject", "List-Subscribe", "List-Archive"] ["other words"]
+	) {
+      fileinto "Newsletters/Politics/Local";
+    } elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Advocacy" {
+      fileinto "Newsletters/Politics/Advocacy";
+    } elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=News" {
+	  fileinto "Newsletters/Politics/News";
     }
-    fileinto "expiring";
-	
-  # }
+    else {
+	 fileinto "Newsletters/Politics";
+    }
+  } 
+  # THE FEED - crafts
+  elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Crafts" {
+	fileinto "Newsletters/Crafts";
+  }
+  # THE FEED - substack
+  elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Substack" {
+	fileinto "Newsletters/Substack";
+  }
+  # THE FEED - charities
+  elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Charities" {
+	fileinto "Newsletters/Charities";
+  }
+  # THE FEED - shops
+  elsif header :list ["from", "to", "X-Original-To"] ":addrbook:personal?label.ends-with=Shops" {
+	fileinto "Newsletters/Shops";
+  }
+  # THE FEED - subscriptions
+  elsif header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label.ends-with=Subscriptions"
+  {
+    fileinto "Newsletters/Subscriptions";
+  }
+  # THE FEED - music
+  elsif header :list ["from", "to", "X-Original-To", "Cc", "Bcc"] ":addrbook:personal?label.ends-with=Music" {
+    fileinto "Newsletters/Music";
+  }
+
+  # THE FEED - patreon
+  elsif header :comparator "i;unicode-casemap" :regex [
+    "from",
+    "X-Simplelogin-Original-From",
+    "subject"
+    ] [
+      ".*patreon.*"
+  ]  {
+    fileinto "Newsletters/Patreon";
+  }
+  else {
+    fileinto "Newsletters";
+  }
+  # I don't need this, but leaving itt here for now.
+  if header :comparator "i;unicode-casemap" :matches "from" "*hello@deals.going.com*" {
+    # Going.com deals no good after a week
+    expire "day" "${non_critical_alerts_expiry_days}";
+  } else {
+    expire "day" "${newsletter_expiry_relative_days}";
+  }
+  fileinto "expiring";
   stop;
 }
 
@@ -1189,26 +1114,7 @@ header :list [
 #                        
 
 # SCREENER - old addresses
-# Flag up new emails that still need to have the account login moved from previous provider.
-#
-# Rules:
-# - ANY match in here MUST call `stop`.
-#
-# A date is provided to split out rules from running on your first time on the inbox
-# (being aplied to all emails) # and when being applied past that date.
-# Set it to your first run date.
-# Assuming most migration has already been done, then we can only flag up future emails
-# via Screener, and just label old mails.
-#
-# Possible actions:
-# These may be archived or sent to the Paper Trail once the underlying account is updated:
-# they won't come up next time due to the relative time period of ${migration_julian_day}.
-# But we don't want them to go to Paper Trail without alerting us of the issue first.
-
 if allof(
-  # Assuming the bulk of migration is done, set to date of initial full mailbox run,
-  # so we fileinto Screener only for new emails, not those with account already migrated
-  # but still to the old address.
   header :list [
     "bcc",
     "cc",
@@ -1230,50 +1136,19 @@ if allof(
   stop;
 }
 
+# SCREENER - needs an alias; I moved this down here because I kind of don't care about things needing an alias if they got stopped earlier...
+# THAT BEING SAID: I've already done a pretty solid job of de-googling my email addresses, so if you haven't, I'd move this to the top of the sieve.
+if not address :contains "To" ["passmail.net", "passmail.com", "passfwd.com", "passinbox.com"] {
+	fileinto "needs-alias";
+}
 
 # SCREENER - final fallthrough
-# Anything that makes it this far and has a sender not added into the address book
-# (with or without a Contact Group) will go to the Screener.
-#
-# This includes items going to Paper Trail, to make sure we're aware of new contacts.
-#
-# Even with mail that has been labelled using an aliased address,
-# an aliased address is really "me", not "from", and so should go to screener
-# if the contact using it is unexpected.
-#
-# Doesn't drag every single old item into Screener,
-# uses migration date to just get contact group representation clean from that date.
-
 if allof(
   string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}",
-  not header :list "from" ":addrbook:personal") {
+  not header :list ["from", "to"] ":addrbook:personal") {
   fileinto "needs-filter";
   stop;
 }
-
-# ARCHIVE - for addresses we are aware of and want to hide in future (airbnb, booking.com, view through app instead)
-# and that arent't alerts, auto hide/archive these
-
-# if allof(
-#   anyof(
-#    header :list [
-#       "from",
-#       "X-Simplelogin-Original-From"
-#     ] ":addrbook:personal?label=auto-archive",
-#     header :comparator "i;unicode-casemap" :matches [
-#       "from",
-#       "X-Simplelogin-Original-From"
-#     ] [
-#       "through booking.com",
-#       "via booking.com"
-#     ]
-#   ),
-#   string :comparator "i;ascii-numeric" :value "ge" "${received_julian_day}" "${migration_julian_day}"
-# ) {
-#   addflag "\\Seen";
-#   fileinto "archive";
-#   stop;
-# }
 
 #############
 ## Default ##
